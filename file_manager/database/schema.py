@@ -1,10 +1,9 @@
-from sqlalchemy import MetaData
-from enum import Enum, unique
+from sqlalchemy import MetaData, ForeignKey
+from sqlalchemy.orm import relationship
+from enum import Enum
+from sqlalchemy.ext.declarative import declarative_base
 
-from sqlalchemy import (
-    Column, Date, Enum as PgEnum, ForeignKey, ForeignKeyConstraint, Integer,
-    String, Table
-)
+from sqlalchemy import Column, Date, Enum as PgEnum, Integer, String
 
 convention = {
     'all_column_names': lambda constraint, table: '_'.join([
@@ -30,31 +29,28 @@ metadata = MetaData(naming_convention=convention)
 
 
 class Type(Enum):
-    dir = "dir"
-    file = "file"
+    folder = "FOLDER"
+    file = "FILE"
 
 
-file_system_table = Table(
-    "file_system",
-    metadata,
-    Column("id", Integer, primary_key=True, nullable=False),
-    Column("parentId", Integer),
-    Column("type", PgEnum(Type, name="type"), nullable=False),
-    Column("url", String),
-    Column("size", Integer),
-    Column("data", Date, nullable=False)
-)
+Base = declarative_base(metadata=metadata)
 
 
-relations_table = Table(
-    "relations",
-    metadata,
-    Column("id", Integer, primary_key=True),
-    Column("parentId", Integer),
-    ForeignKeyConstraint(
-        ("id", "parentId"),
-        ("file_system.id", "fyle_system.parentId")
-    )
-)
+class FileSystem(Base):
+    __tablename__ = "file_system"
+    id = Column(Integer, primary_key=True, nullable=False)
+    parentId = Column(Integer, ForeignKey("relations.id"))
+    type = Column(PgEnum(Type, name="type"), nullable=False)
+    url = Column(String)
+    size = Column(Integer)
+    data = Column(Date, nullable=False)
 
 
+class Relations(Base):
+    __tablename__ = "relations"
+    id = Column(Integer, primary_key=True, nullable=False)
+    children = relationship("FileSystem")
+    type = Column(PgEnum(Type, name="type"), nullable=False)
+    url = Column(String)
+    size = Column(Integer)
+    data = Column(Date, nullable=False)
